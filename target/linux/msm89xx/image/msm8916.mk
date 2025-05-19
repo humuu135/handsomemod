@@ -62,4 +62,22 @@ endef
 
 TARGET_DEVICES += Handsome_handsome-openstick-uz801
 
+define Device/Handsome_handsome-openstick-hmuf02
+  $(Device/msm8916)
+  DEVICE_VENDOR := Handsome
+  DEVICE_MODEL := OpenStick HMUF02
+  DEVICE_PACKAGES := openstick-tweaks wpad-basic-wolfssl kmod-qcom-modem qcom-msm8916-modem-openstick-hmuf02-firmware qcom-msm8916-openstick-hmuf02-wcnss-firmware qcom-msm8916-wcnss-openstick-hmuf02-nv
+endef
+
+TARGET_DEVICES += Handsome_handsome-openstick-hmuf02
+
+define Device/Handsome_handsome-openstick-jz01
+  $(Device/msm8916)
+  DEVICE_VENDOR := Handsome
+  DEVICE_MODEL := OpenStick JZ01
+  DEVICE_PACKAGES := openstick-tweaks wpad-basic-wolfssl kmod-qcom-modem qcom-msm8916-modem-openstick-jz01-firmware qcom-msm8916-openstick-jz01-wcnss-firmware qcom-msm8916-wcnss-openstick-jz01-nv
+endef
+
+TARGET_DEVICES += Handsome_handsome-openstick-jz01
+
 endif
