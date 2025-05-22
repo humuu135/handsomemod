@@ -77,6 +77,20 @@ $(curdir)/install: $(TMP_DIR)/.build $(curdir)/merge $(if $(CONFIG_TARGET_PER_DE
 		done; \
 	done || true
 
+ifeq ($(CONFIG_PACKING_TARGET_PACKAGES_TO_OPT),y)
+	mkdir -p $(TARGET_DIR)/opt
+	$(CP) $(PACKAGE_DIR) $(TARGET_DIR)/opt/packages
+	@for d in $(PACKAGE_SUBDIRS); do ( \
+		[ -d $$d ] && [ -x $(TOPDIR)/copy_additional_packages.sh ] && \
+		$(TOPDIR)/copy_additional_packages.sh "$$d" "$(TARGET_DIR)/opt/packages" || true; \
+	); done
+	$(MAKE) "PACKAGE_SUBDIRS=$(TARGET_DIR)/opt/packages" package/index
+	sed -i -e '/handsomemod_core/d' $(TARGET_DIR)/etc/opkg/distfeeds.conf
+	sed -i -e '/handsomemod_kmods/d' $(TARGET_DIR)/etc/opkg/distfeeds.conf
+	echo 'src/gz local_packages file:///opt/packages' >> $(TARGET_DIR)/etc/opkg/distfeeds.conf
+	cp "$(TOPDIR)/key-build.pub" "$(TARGET_DIR)/etc/opkg/keys/$(shell $(STAGING_DIR_HOST)/bin/usign -F -p "$(TOPDIR)/key-build.pub")"
+endif
+
 	$(CP) $(TARGET_DIR) $(TARGET_DIR_ORIG)
 
 	$(call prepare_rootfs,$(TARGET_DIR),$(TOPDIR)/files)

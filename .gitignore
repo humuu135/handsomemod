@@ -30,3 +30,4 @@ git-src
 .cproject
 .ccache
 .vscode
+/copy_additional_packages.sh
