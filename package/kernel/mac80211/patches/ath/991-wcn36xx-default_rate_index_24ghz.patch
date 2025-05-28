@@ -1,0 +1,12 @@
+Index: backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/smd.c
+===================================================================
+--- backports-5.15.162-1.orig/drivers/net/wireless/ath/wcn36xx/smd.c
++++ backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/smd.c
+@@ -59,6 +59,7 @@ static struct wcn36xx_cfg_val wcn36xx_cf
+ 	WCN36XX_CFG_VAL(FORCE_POLICY_PROTECTION, 5),
+ 	WCN36XX_CFG_VAL(FIXED_RATE_MULTICAST_24GHZ, 1),
+ 	WCN36XX_CFG_VAL(FIXED_RATE_MULTICAST_5GHZ, 5),
++	WCN36XX_CFG_VAL(DEFAULT_RATE_INDEX_24GHZ, 1),
+ 	WCN36XX_CFG_VAL(DEFAULT_RATE_INDEX_5GHZ, 5),
+ 	WCN36XX_CFG_VAL(MAX_BA_SESSIONS, 40),
+ 	WCN36XX_CFG_VAL(PS_DATA_INACTIVITY_TIMEOUT, 200),

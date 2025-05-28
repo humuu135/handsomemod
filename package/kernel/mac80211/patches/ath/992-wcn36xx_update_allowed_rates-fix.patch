@@ -1,0 +1,41 @@
+Index: backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/main.c
+===================================================================
+--- backports-5.15.162-1.orig/drivers/net/wireless/ath/wcn36xx/main.c
++++ backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/main.c
+@@ -742,7 +742,7 @@ static void wcn36xx_sw_scan_complete(str
+ static void wcn36xx_update_allowed_rates(struct ieee80211_sta *sta,
+ 					 enum nl80211_band band)
+ {
+-	int i, size;
++	int i, j, size;
+ 	u16 *rates_table;
+ 	struct wcn36xx_sta *sta_priv = wcn36xx_sta_to_priv(sta);
+ 	u32 rates = sta->supp_rates[band];
+@@ -754,21 +754,21 @@ static void wcn36xx_update_allowed_rates
+ 	size = ARRAY_SIZE(sta_priv->supported_rates.dsss_rates);
+ 	rates_table = sta_priv->supported_rates.dsss_rates;
+ 	if (band == NL80211_BAND_2GHZ) {
+-		for (i = 0; i < size; i++) {
++		for (i = 0, j = 0; i < size; i++) {
+ 			if (rates & 0x01) {
+-				rates_table[i] = wcn_2ghz_rates[i].hw_value;
+-				rates = rates >> 1;
++				rates_table[j++] = wcn_2ghz_rates[i].hw_value;
+ 			}
++			rates = rates >> 1;
+ 		}
+ 	}
+ 
+ 	size = ARRAY_SIZE(sta_priv->supported_rates.ofdm_rates);
+ 	rates_table = sta_priv->supported_rates.ofdm_rates;
+-	for (i = 0; i < size; i++) {
++	for (i = 0, j = 0; i < size; i++) {
+ 		if (rates & 0x01) {
+-			rates_table[i] = wcn_5ghz_rates[i].hw_value;
+-			rates = rates >> 1;
++			rates_table[j++] = wcn_5ghz_rates[i].hw_value;
+ 		}
++		rates = rates >> 1;
+ 	}
+ 
+ 	if (sta->ht_cap.ht_supported) {

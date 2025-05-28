@@ -1,0 +1,14 @@
+Index: backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/smd.c
+===================================================================
+--- backports-5.15.162-1.orig/drivers/net/wireless/ath/wcn36xx/smd.c
++++ backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/smd.c
+@@ -1459,7 +1459,8 @@ wcn36xx_smd_set_sta_params_v1(struct wcn
+ 		memcpy(&sta_par->supported_rates, &sta_priv->supported_rates,
+ 		       sizeof(sta_par->supported_rates));
+ 	} else {
+-		wcn36xx_set_default_rates_v1(&sta_par->supported_rates);
++		if (wcn->rf_id == RF_IRIS_WCN3680)
++			wcn36xx_set_default_rates_v1(&sta_par->supported_rates);
+ 		wcn36xx_smd_set_sta_default_vht_params(wcn, sta_par);
+ 		wcn36xx_smd_set_sta_default_ht_ldpc_params(wcn, sta_par);
+ 	}
