@@ -202,6 +202,13 @@ hostapd_prepare_device_config() {
 		;;
 	esac
 
+	# Workaround for wcn36xx AP mode tx rate not changing.
+	# Use legacy_rates flag.
+	if [ "$legacy_rates" -ne 0 ]; then
+		rate_list="54000"
+		basic_rate_list="54000"
+	fi
+
 	for r in $rate_list; do
 		hostapd_add_rate rlist "$r"
 	done
