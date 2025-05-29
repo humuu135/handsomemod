@@ -39,3 +39,13 @@ Index: backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/main.c
  	}
  
  	if (sta->ht_cap.ht_supported) {
+@@ -777,6 +777,9 @@ static void wcn36xx_update_allowed_rates
+ 		memcpy(sta_priv->supported_rates.supported_mcs_set,
+ 		       sta->ht_cap.mcs.rx_mask,
+ 		       sizeof(sta->ht_cap.mcs.rx_mask));
++		rates = sta->supp_rates[band];
++		if (band == NL80211_BAND_2GHZ) rates = rates >> 4;
++		sta_priv->supported_rates.supported_mcs_set[0] &= (u8)(rates & 0xff);
+ 	}
+ 
+ 	if (sta->vht_cap.vht_supported) {
