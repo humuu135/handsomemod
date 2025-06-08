@@ -24,10 +24,10 @@ Signed-off-by: Stephan Gerhold <stephan@gerhold.net>
  3 files changed, 914 insertions(+)
  create mode 100644 drivers/net/ethernet/qualcomm/bam-dmux.c
 
-diff --git a/drivers/net/ethernet/qualcomm/Kconfig b/drivers/net/ethernet/qualcomm/Kconfig
-index a4434eb38..8b90f035b 100644
---- a/drivers/net/ethernet/qualcomm/Kconfig
-+++ b/drivers/net/ethernet/qualcomm/Kconfig
+Index: linux-5.10.33/drivers/net/ethernet/qualcomm/Kconfig
+===================================================================
+--- linux-5.10.33.orig/drivers/net/ethernet/qualcomm/Kconfig
++++ linux-5.10.33/drivers/net/ethernet/qualcomm/Kconfig
 @@ -47,6 +47,10 @@ config QCA7000_UART
  	  To compile this driver as a module, choose M here. The module
  	  will be called qcauart.
@@ -39,10 +39,10 @@ index a4434eb38..8b90f035b 100644
  config QCOM_EMAC
  	tristate "Qualcomm Technologies, Inc. EMAC Gigabit Ethernet support"
  	depends on HAS_DMA && HAS_IOMEM
-diff --git a/drivers/net/ethernet/qualcomm/Makefile b/drivers/net/ethernet/qualcomm/Makefile
-index 9250976dd..ae03ecf6e 100644
---- a/drivers/net/ethernet/qualcomm/Makefile
-+++ b/drivers/net/ethernet/qualcomm/Makefile
+Index: linux-5.10.33/drivers/net/ethernet/qualcomm/Makefile
+===================================================================
+--- linux-5.10.33.orig/drivers/net/ethernet/qualcomm/Makefile
++++ linux-5.10.33/drivers/net/ethernet/qualcomm/Makefile
 @@ -8,6 +8,7 @@ obj-$(CONFIG_QCA7000_SPI) += qcaspi.o
  qcaspi-objs := qca_7k.o qca_debug.o qca_spi.o
  obj-$(CONFIG_QCA7000_UART) += qcauart.o
@@ -51,12 +51,11 @@ index 9250976dd..ae03ecf6e 100644
  
  obj-y += emac/
  
-diff --git a/drivers/net/ethernet/qualcomm/bam-dmux.c b/drivers/net/ethernet/qualcomm/bam-dmux.c
-new file mode 100644
-index 000000000..9e8b033ce
+Index: linux-5.10.33/drivers/net/ethernet/qualcomm/bam-dmux.c
+===================================================================
 --- /dev/null
-+++ b/drivers/net/ethernet/qualcomm/bam-dmux.c
-@@ -0,0 +1,907 @@
++++ linux-5.10.33/drivers/net/ethernet/qualcomm/bam-dmux.c
+@@ -0,0 +1,964 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Qualcomm BAM-DMUX WWAN network driver
@@ -145,12 +144,44 @@ index 000000000..9e8b033ce
 +	DECLARE_BITMAP(remote_channels, BAM_DMUX_NUM_CH);
 +	struct work_struct register_netdev_work;
 +	struct net_device *netdevs[BAM_DMUX_NUM_CH];
++
++	spinlock_t stats_lock;
++	struct rtnl_link_stats64 stats[BAM_DMUX_NUM_CH];
 +};
 +
 +struct bam_dmux_netdev {
 +	struct bam_dmux *dmux;
 +	u8 ch;
 +};
++
++static void bam_dmux_rx_fixup(struct sk_buff *skb, struct bam_dmux *dmux, u8 ch)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&dmux->stats_lock, flags);
++	dmux->stats[ch].rx_packets++;
++	dmux->stats[ch].rx_bytes += skb->len;
++	spin_unlock_irqrestore(&dmux->stats_lock, flags);
++}
++
++static void bam_dmux_tx_fixup(struct sk_buff *skb, struct bam_dmux *dmux, u8 ch)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&dmux->stats_lock, flags);
++	dmux->stats[ch].tx_packets++;
++	dmux->stats[ch].tx_bytes += skb->len;
++	spin_unlock_irqrestore(&dmux->stats_lock, flags);
++}
++
++static void bam_dmux_drop_fixup(struct bam_dmux *dmux, u8 ch)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&dmux->stats_lock, flags);
++	dmux->stats[ch].tx_dropped++;
++	spin_unlock_irqrestore(&dmux->stats_lock, flags);
++}
 +
 +static void bam_dmux_pc_vote(struct bam_dmux *dmux, bool enable)
 +{
@@ -424,10 +455,13 @@ index 000000000..9e8b033ce
 +	if (!bam_dmux_skb_dma_submit_tx(skb_dma))
 +		goto drop;
 +
++	bam_dmux_tx_fixup(skb, dmux, bndev->ch);
++
 +	dma_async_issue_pending(dmux->tx);
 +	return NETDEV_TX_OK;
 +
 +drop:
++	bam_dmux_drop_fixup(dmux, bndev->ch);
 +	bam_dmux_tx_done(skb_dma);
 +	dev_kfree_skb_any(skb);
 +	return NETDEV_TX_OK;
@@ -460,10 +494,28 @@ index 000000000..9e8b033ce
 +	pm_runtime_put_autosuspend(dmux->dev);
 +}
 +
++static void bam_dmux_netdev_get_stats64(struct net_device *netdev,
++			      struct rtnl_link_stats64 *s)
++{
++	struct bam_dmux_netdev *bndev = netdev_priv(netdev);
++	struct bam_dmux *dmux = bndev->dmux;
++	struct rtnl_link_stats64 *stats = &dmux->stats[bndev->ch];
++	unsigned long flags;
++
++	spin_lock_irqsave(&dmux->stats_lock, flags);
++	s->rx_packets = stats->rx_packets;
++	s->rx_bytes = stats->rx_bytes;
++	s->tx_packets = stats->tx_packets;
++	s->tx_bytes = stats->tx_bytes;
++	s->tx_dropped = stats->tx_dropped;
++	spin_unlock_irqrestore(&dmux->stats_lock, flags);
++}
++
 +static const struct net_device_ops bam_dmux_ops = {
 +	.ndo_open	= bam_dmux_netdev_open,
 +	.ndo_stop	= bam_dmux_netdev_stop,
 +	.ndo_start_xmit	= bam_dmux_netdev_start_xmit,
++	.ndo_get_stats64 = bam_dmux_netdev_get_stats64,
 +};
 +
 +static const struct device_type wwan_type = {
@@ -594,6 +646,8 @@ index 000000000..9e8b033ce
 +		skb->protocol = htons(ETH_P_MAP);
 +		break;
 +	}
++
++	bam_dmux_rx_fixup(skb, dmux, hdr->ch);
 +
 +	netif_receive_skb(skb);
 +}
@@ -902,6 +956,8 @@ index 000000000..9e8b033ce
 +			bam_dmux_power_off(dmux);
 +	}
 +
++	spin_lock_init(&dmux->stats_lock);
++
 +	return 0;
 +}
 +
@@ -964,5 +1020,3 @@ index 000000000..9e8b033ce
 +MODULE_LICENSE("GPL v2");
 +MODULE_DESCRIPTION("Qualcomm BAM-DMUX WWAN Network Driver");
 +MODULE_AUTHOR("Stephan Gerhold <stephan@gerhold.net>");
--- 
-2.31.1
