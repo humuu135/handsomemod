@@ -1,0 +1,37 @@
+Index: backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/smd.c
+===================================================================
+--- backports-5.15.162-1.orig/drivers/net/wireless/ath/wcn36xx/smd.c
++++ backports-5.15.162-1/drivers/net/wireless/ath/wcn36xx/smd.c
+@@ -81,6 +81,7 @@ static struct wcn36xx_cfg_val wcn36xx_cf
+ 	WCN36XX_CFG_VAL(ENABLE_MCC_ADAPTIVE_SCHEDULER, 0),
+ 	WCN36XX_CFG_VAL(ENABLE_DYNAMIC_RA_START_RATE, 133), /* MCS 5 */
+ 	WCN36XX_CFG_VAL(LINK_FAIL_TX_CNT, 1000),
++	WCN36XX_CFG_VAL(ENABLE_SAP_OBSS_PROT, 1),
+ };
+ 
+ static struct wcn36xx_cfg_val wcn3680_cfg_vals[] = {
+@@ -177,6 +178,7 @@ static struct wcn36xx_cfg_val wcn3680_cf
+ 	WCN36XX_CFG_VAL(UNITS_OF_BCN_WAIT_TIME, 0),
+ 	WCN36XX_CFG_VAL(TRIGGER_NULLFRAME_BEFORE_HB, 0),
+ 	WCN36XX_CFG_VAL(ENABLE_POWERSAVE_OFFLOAD, 0),
++	WCN36XX_CFG_VAL(ENABLE_SAP_OBSS_PROT, 1),
+ };
+ 
+ static int put_cfg_tlv_u32(struct wcn36xx *wcn, size_t *len, u32 id, u32 value)
+@@ -1647,7 +1649,7 @@ static void wcn36xx_smd_set_bss_params(s
+ 	bss->ssid.length = vif_priv->ssid.length;
+ 	memcpy(bss->ssid.ssid, vif_priv->ssid.ssid, vif_priv->ssid.length);
+ 
+-	bss->obss_prot_enabled = 0;
++	bss->obss_prot_enabled = 1;
+ 	bss->rmf = 0;
+ 	bss->max_probe_resp_retry_limit = 0;
+ 	bss->hidden_ssid = vif->bss_conf.hidden_ssid;
+@@ -2428,6 +2430,7 @@ int wcn36xx_smd_feature_caps_exchange(st
+ 	INIT_HAL_MSG(msg_body, WCN36XX_HAL_FEATURE_CAPS_EXCHANGE_REQ);
+ 
+ 	set_feat_caps(msg_body.feat_caps, STA_POWERSAVE);
++	set_feat_caps(msg_body.feat_caps, HT40_OBSS_SCAN);
+ 	if (wcn->rf_id == RF_IRIS_WCN3680)
+ 		set_feat_caps(msg_body.feat_caps, DOT11AC);
+ 
